@@ -1,11 +1,11 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <title>OUR WEDDING DASHBOARD</title>
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
+ <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%2319121d%22/><text x=%2250%%22 y=%2255%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2265%22>💖</text></svg>">
   
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -565,7 +565,6 @@
     let calDate = new Date();
     let selectedCalDayStr = null;
 
-    // 로컬 백업 우선 복원
     const savedLocal = localStorage.getItem('wedding_vault_data');
     window.appData = savedLocal ? JSON.parse(savedLocal) : {
       weddingDate: "",
@@ -590,7 +589,6 @@
       const db = getDatabase(app);
       dataRef = ref(db, 'wedding_sync');
 
-      // 1회 즉시 강제 조회 (새로고침 시 빈값 덮어쓰기 완전 방지)
       get(dataRef).then((snapshot) => {
         if (snapshot.exists()) {
           const val = snapshot.val();
@@ -608,7 +606,6 @@
         updateSyncStatus('online', 'LIVE CLOUD SYNC');
         render();
 
-        // 실시간 스트림 수신 등록
         onValue(dataRef, (s) => {
           if (s.exists()) {
             const v = s.val();
@@ -636,12 +633,9 @@
       updateSyncStatus('error', 'OFFLINE');
     }
 
-    // 서버 저장 함수
-    window.saveAllData = function() {
-      // 1. 브라우저 로컬 저장소에 즉시 영구 저장
+    function syncState() {
       localStorage.setItem('wedding_vault_data', JSON.stringify(window.appData));
       
-      // 2. 클라우드 전송
       if (dataRef) {
         updateSyncStatus('saving', 'SAVING...');
         set(dataRef, window.appData)
@@ -651,11 +645,11 @@
           .catch((err) => {
             console.error("Firebase Write Error:", err);
             updateSyncStatus('error', 'WRITE BLOCKED');
-            alert("⚠️ 클라우드 쓰기가 차단되었습니다!\nFirebase Console에서 규칙(.read / .write)이 true로 열려있는지 확인하세요.");
+            alert("저장 실패: " + err.message);
           });
       }
       render();
-    };
+    }
 
     function calculateDDay(dateStr) {
       if (!dateStr) return { text: "D-DAY 설정", label: "터치하여 날짜 설정" };
@@ -712,7 +706,7 @@
       const newObj = {};
       newKeys.forEach(k => { newObj[k] = obj[k]; });
       window.appData[currentTab] = newObj;
-      window.saveAllData();
+      syncState();
     }
 
     function exportToExcel() {
@@ -1113,17 +1107,17 @@
         const t = items.find(i => i.id === id);
         if (t) {
           t.done = !t.done;
-          window.saveAllData();
+          syncState();
         }
       } else if (action === 'del-item') {
         if (confirm('이 항목을 삭제하시겠습니까?')) {
           window.appData[currentTab][cat] = window.appData[currentTab][cat].filter(i => i.id !== id);
-          window.saveAllData();
+          syncState();
         }
       } else if (action === 'del-group') {
         if (confirm(`[${cat}] 카테고리와 내부 모든 항목을 삭제하시겠습니까?`)) {
           delete window.appData[currentTab][cat];
-          window.saveAllData();
+          syncState();
         }
       } else if (action === 'edit-group') {
         openEditGroupModal(cat);
@@ -1300,16 +1294,16 @@
         window.appData.targetTotalBudget = Number(document.getElementById('inputTargetTotal').value || 0);
         window.appData.targetGroomBudget = Number(document.getElementById('inputTargetGroom').value || 0);
         window.appData.targetBrideBudget = Number(document.getElementById('inputTargetBride').value || 0);
-        window.saveAllData();
+        syncState();
       } else if (currentModalTarget.type === 'wedding_date') {
         window.appData.weddingDate = document.getElementById('weddingDateInput').value;
-        window.saveAllData();
+        syncState();
       } else if (currentModalTarget.type === 'add_group') {
         const name = document.getElementById('groupNameInput').value.trim();
         if (name) {
           if (!window.appData[currentTab]) window.appData[currentTab] = {};
           if (!window.appData[currentTab][name]) window.appData[currentTab][name] = [];
-          window.saveAllData();
+          syncState();
         }
       } else if (currentModalTarget.type === 'edit_group') {
         const newName = document.getElementById('groupNameInput').value.trim();
@@ -1322,7 +1316,7 @@
             else newObj[k] = window.appData[currentTab][k];
           });
           window.appData[currentTab] = newObj;
-          window.saveAllData();
+          syncState();
         }
       } else if (currentModalTarget.type === 'add_item') {
         const cat = currentModalTarget.category;
@@ -1334,12 +1328,14 @@
             const budget = Number(document.getElementById('itemBudgetInput').value || 0);
             const spent = Number(document.getElementById('itemSpentInput').value || 0);
             const payer = document.getElementById('itemPayerInput').value;
+            if (!window.appData.budget[cat]) window.appData.budget[cat] = [];
             window.appData.budget[cat].push({ id: Date.now().toString(), name, budget, spent, payer, date, note });
           } else {
             const assignee = document.getElementById('itemAssigneeInput').value;
+            if (!window.appData.todo[cat]) window.appData.todo[cat] = [];
             window.appData.todo[cat].push({ id: Date.now().toString(), name, done: false, assignee, date, note });
           }
-          window.saveAllData();
+          syncState();
         }
       } else if (currentModalTarget.type === 'edit_item') {
         const cat = currentModalTarget.category;
@@ -1361,7 +1357,7 @@
           } else {
             item.assignee = document.getElementById('itemAssigneeInput').value;
           }
-          window.saveAllData();
+          syncState();
         }
       }
       closeModal();
