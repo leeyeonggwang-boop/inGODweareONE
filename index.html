@@ -1,3 +1,10 @@
+  <!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <title>OUR WEDDING DASHBOARD</title>
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -122,7 +129,6 @@
       padding: 0 16px;
     }
 
-    /* D-Day Card */
     .dday-card {
       background: linear-gradient(135deg, rgba(244, 114, 182, 0.16), rgba(254, 215, 170, 0.08));
       border: 1px solid rgba(244, 114, 182, 0.28);
@@ -145,7 +151,6 @@
     .dday-info { font-size: 12px; color: var(--text-muted); text-align: right; }
     .dday-info span { color: var(--text-main); font-weight: 600; }
 
-    /* Overview KPI Card */
     .kpi-container {
       background: var(--card-bg);
       backdrop-filter: blur(28px);
@@ -191,7 +196,6 @@
     .kpi-sub-number { font-size: 12px; color: var(--text-muted); text-align: right; line-height: 1.5; }
     .kpi-sub-number span { color: var(--text-main); font-weight: 600; }
 
-    /* Dual Track Bars */
     .progress-bar-title {
       display: flex;
       justify-content: space-between;
@@ -209,7 +213,6 @@
     .progress-fill-plan { height: 100%; background: linear-gradient(90deg, #818cf8, var(--accent-purple)); border-radius: 99px; }
     .progress-fill-actual { height: 100%; background: linear-gradient(90deg, var(--accent-rose), var(--accent-pink)); border-radius: 99px; }
 
-    /* 신랑 / 신부 개별 예산 바 카드 */
     .individual-budget-card {
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid var(--card-border);
@@ -239,7 +242,6 @@
     .indiv-fill-groom { height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 99px; }
     .indiv-fill-bride { height: 100%; background: linear-gradient(90deg, #ec4899, #f472b6); border-radius: 99px; }
 
-    /* 3자 정산 요약 HUD */
     .settlement-hud {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -272,7 +274,6 @@
       margin-bottom: 16px;
     }
 
-    /* 그룹 카드 */
     .group-card {
       background: var(--card-bg);
       backdrop-filter: blur(24px);
@@ -362,7 +363,6 @@
     .spent-tag { font-size: 14px; font-weight: 600; color: #fff; }
     .del-btn { color: #5d4a5f; background: transparent; border: none; font-size: 16px; cursor: pointer; padding: 2px; }
 
-    /* 📅 실시간 캘린더 전용 스타일 */
     .calendar-container {
       background: var(--card-bg);
       backdrop-filter: blur(24px);
@@ -449,7 +449,6 @@
       margin-bottom: 10px;
     }
 
-    /* 플로팅 액션 버튼 */
     .float-action-btn {
       position: fixed;
       bottom: calc(env(safe-area-inset-bottom) + 70px);
@@ -470,7 +469,6 @@
       z-index: 80;
     }
 
-    /* 📱 iOS 모바일 하단 네이티브 탭바 */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -503,7 +501,6 @@
     .nav-item.active { color: var(--accent-pink); }
     .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
 
-    /* 모달 */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -561,7 +558,6 @@
       margin-top: 6px;
     }
 
-    /* 🖨️ A4 규격 정식 웨딩 결산 보고서 전용 출력 스타일 */
     @media print {
       body { background: #fff !important; color: #000 !important; padding: 0 !important; }
       header, .header-right, .bottom-nav, .float-action-btn, .order-btns, .del-btn, .add-sub-btn, .view-tabs { display: none !important; }
@@ -592,12 +588,11 @@
     let currentTab = 'budget';
     let currentModalTarget = null;
     let dataRef = null;
+    let isDataLoadedFromServer = false;
 
-    // 캘린더 네비게이션 상태
     let calDate = new Date();
     let selectedCalDayStr = null;
 
-    // 기존 데이터 무손실 안전 기본 템플릿
     const defaultTemplate = {
       weddingDate: "",
       targetTotalBudget: 30000000,
@@ -626,34 +621,43 @@
             budget: val.budget || {},
             todo: val.todo || {}
           };
+          localStorage.setItem('wedding_local_backup', JSON.stringify(window.appData));
         } else {
-          set(dataRef, defaultTemplate);
+          if (!isDataLoadedFromServer) {
+            set(dataRef, defaultTemplate);
+          }
         }
+        isDataLoadedFromServer = true;
         updateSyncStatus('online', 'LIVE CLOUD SYNC');
         render();
       }, (error) => {
-        console.error(error);
+        console.error("Firebase Sync Error:", error);
         updateSyncStatus('error', 'SYNC DENIED');
-        render();
       });
     } catch (e) {
-      console.error(e);
+      console.error("Firebase Init Error:", e);
       updateSyncStatus('error', 'OFFLINE MODE');
-      render();
     }
 
     function updateSyncStatus(state, text) {
       const dot = document.getElementById('syncDot');
       const label = document.getElementById('syncIndicator');
-      dot.className = 'sync-dot ' + (state === 'online' ? 'online' : 'error');
-      label.innerText = text;
+      if (dot && label) {
+        dot.className = 'sync-dot ' + (state === 'online' ? 'online' : 'error');
+        label.innerText = text;
+      }
     }
 
     function syncState() {
+      if (!isDataLoadedFromServer) {
+        console.warn("데이터를 불러오는 중에는 저장이 차단됩니다.");
+        return;
+      }
       localStorage.setItem('wedding_local_backup', JSON.stringify(window.appData));
       if (dataRef) {
         set(dataRef, window.appData).catch(err => {
-          console.warn("Sync failed, local cached:", err);
+          console.error("클라우드 저장 실패:", err);
+          updateSyncStatus('error', 'SYNC FAILED');
         });
       }
       render();
@@ -717,7 +721,6 @@
       syncState();
     }
 
-    /* 📊 1. 스타일리시 엑셀 내보내기 */
     function exportToExcel() {
       if (!window.XLSX) { alert("엑셀 모듈 준비 중..."); return; }
       const wb = XLSX.utils.book_new();
@@ -760,15 +763,13 @@
       XLSX.writeFile(wb, `결혼대작전_웨딩결산_${today}.xlsx`);
     }
 
-    /* 📄 2. 한글 스타일 정식 A4 웨딩 결산 보고서 (인쇄 / PDF) */
     function exportReport() {
       window.print();
     }
 
-    /* 📅 캘린더 렌더링 엔진 */
     function renderCalendar() {
       const year = calDate.getFullYear();
-      const month = calDate.getMonth(); // 0-indexed
+      const month = calDate.getMonth();
 
       document.getElementById('calTitle').innerText = `${year}년 ${month + 1}월`;
 
@@ -779,10 +780,8 @@
       const grid = document.getElementById('calGridDays');
       grid.innerHTML = '';
 
-      // 날짜별 데이터 매핑 (지출액 합계, 할 일 리스트)
       const dateMap = {};
 
-      // 예산 항목 수집
       Object.keys(window.appData.budget || {}).forEach(cat => {
         (window.appData.budget[cat] || []).forEach(item => {
           if (item.date) {
@@ -793,7 +792,6 @@
         });
       });
 
-      // 할 일 항목 수집
       Object.keys(window.appData.todo || {}).forEach(cat => {
         (window.appData.todo[cat] || []).forEach(todo => {
           if (todo.date) {
@@ -803,7 +801,6 @@
         });
       });
 
-      // 이전 달 날짜 채우기
       for (let x = firstDayIndex; x > 0; x--) {
         const d = prevLastDay - x + 1;
         const cell = document.createElement('div');
@@ -814,7 +811,6 @@
 
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // 이번 달 날짜 생성
       for (let i = 1; i <= lastDay; i++) {
         const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
         const dayOfWeek = new Date(year, month, i).getDay();
@@ -854,7 +850,6 @@
         grid.appendChild(cell);
       }
 
-      // 기본 선택일 디테일 갱신
       if (selectedCalDayStr && dateMap[selectedCalDayStr]) {
         renderCalDetail(selectedCalDayStr, dateMap[selectedCalDayStr]);
       } else if (selectedCalDayStr) {
@@ -1015,7 +1010,6 @@
           mainContainer.appendChild(card);
         });
 
-        // 상단 전체 게이지 계산
         const spentRatio = targetTotal > 0 ? Math.min(Math.round((grandSpent / targetTotal) * 100), 100) : 0;
         const planRatio = targetTotal > 0 ? Math.min(Math.round((grandPlan / targetTotal) * 100), 100) : 0;
 
@@ -1027,12 +1021,10 @@
         document.getElementById('spentRatioText').innerText = `${spentRatio}% (₩${grandSpent.toLocaleString()})`;
         document.getElementById('actualProgressBar').style.width = `${spentRatio}%`;
 
-        // 3자 정산 요약
         document.getElementById('groomTotal').innerText = `₩${groomSpent.toLocaleString()}`;
         document.getElementById('brideTotal').innerText = `₩${brideSpent.toLocaleString()}`;
         document.getElementById('jointTotal').innerText = `₩${jointSpent.toLocaleString()}`;
 
-        // 신랑 / 신부 개별 예산 바
         const groomRatio = targetGroom > 0 ? Math.min(Math.round((groomSpent / targetGroom) * 100), 100) : 0;
         const brideRatio = targetBride > 0 ? Math.min(Math.round((brideSpent / targetBride) * 100), 100) : 0;
 
@@ -1041,7 +1033,6 @@
         document.getElementById('brideIndivDesc').innerText = `₩${brideSpent.toLocaleString()} / ₩${targetBride.toLocaleString()} (${brideRatio}%)`;
         document.getElementById('brideIndivBar').style.width = `${brideRatio}%`;
 
-        // 5:5 차액 정산 가이드
         const diff = Math.abs(groomSpent - brideSpent);
         const half = Math.round(diff / 2);
         let settleGuideText = "";
@@ -1116,7 +1107,6 @@
       }
     }
 
-    // 전역 이벤트 위임
     document.addEventListener('click', (e) => {
       const target = e.target.closest('[data-action]');
       if (!target) return;
@@ -1154,7 +1144,6 @@
       }
     });
 
-    // 전체/신랑/신부 예산 설정 모달
     function openTargetBudgetModal() {
       currentModalTarget = { type: 'target_all_budgets' };
       document.getElementById('modalTitle').innerText = '목표 예산 상세 설정';
@@ -1403,7 +1392,6 @@
       document.getElementById('excelBtn').addEventListener('click', exportToExcel);
       document.getElementById('reportBtn').addEventListener('click', exportReport);
 
-      // 캘린더 월 이동 버튼
       document.getElementById('prevMonthBtn').addEventListener('click', () => {
         calDate.setMonth(calDate.getMonth() - 1);
         renderCalendar();
@@ -1441,7 +1429,6 @@
   </header>
 
   <div class="container">
-    <!-- D-Day Card -->
     <div class="dday-card" id="ddayCard">
       <div>
         <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); font-weight:600;">Wedding D-Day</div>
@@ -1453,7 +1440,6 @@
       </div>
     </div>
 
-    <!-- Overview KPI Card -->
     <div class="kpi-container" id="kpiCard">
       <div class="kpi-header">
         <div style="font-size:11px; color:var(--text-muted); font-weight:700; letter-spacing:1px;">TOTAL BUDGET OVERVIEW</div>
@@ -1468,7 +1454,6 @@
         </div>
       </div>
 
-      <!-- 전체 2중 비교 게이지 -->
       <div class="progress-bar-title">
         <span>🟣 항목별 계획 예산 비중</span>
         <span id="planRatioText">0%</span>
@@ -1486,9 +1471,7 @@
       </div>
     </div>
 
-    <!-- 예산 전용 서브 위젯 -->
     <div id="budgetExtraUI">
-      <!-- 👨‍💼 신랑 / 👰‍♀️ 신부 개별 예산 바 카드 -->
       <div class="individual-budget-card">
         <div class="indiv-row">
           <span class="indiv-name groom">👨‍💼 신랑 지출 현황 ✎</span>
@@ -1507,7 +1490,6 @@
         </div>
       </div>
 
-      <!-- 3자 정산 요약 HUD -->
       <div class="settlement-hud">
         <div class="settle-box groom">
           <div class="settle-label">신랑 결제</div>
@@ -1523,13 +1505,11 @@
         </div>
       </div>
 
-      <!-- 정산 가이드 -->
       <div class="settle-guide-card">
         <div id="settleGuideText">정산 내역을 계산 중입니다...</div>
       </div>
     </div>
 
-    <!-- 📅 캘린더 탭 뷰 -->
     <div id="calendarWrapper" style="display:none;">
       <div class="calendar-container">
         <div class="cal-header">
@@ -1553,20 +1533,16 @@
         <div class="cal-grid-days" id="calGridDays"></div>
       </div>
 
-      <!-- 선택된 날짜의 상세 내역 카드 -->
       <div id="calDetailContainer"></div>
     </div>
 
-    <!-- 예산 / 할 일 카드 컨테이너 -->
     <div id="sectionContainer"></div>
   </div>
 
-  <!-- 추가 플로팅 버튼 -->
   <button class="float-action-btn" id="floatingBtn">
     <span style="font-size: 16px;">+</span> <span id="floatingBtnText">상위 예산군 추가</span>
   </button>
 
-  <!-- 📱 iOS 스타일 하단 네이티브 탭바 -->
   <nav class="bottom-nav">
     <button class="nav-item active" data-tab="budget">
       <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
@@ -1582,7 +1558,6 @@
     </button>
   </nav>
 
-  <!-- 모달 팝업 -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal-content">
       <h3 id="modalTitle" style="margin-bottom: 14px; font-weight:700; font-size:16px;">항목 추가</h3>
