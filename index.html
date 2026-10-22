@@ -571,7 +571,7 @@
   </style>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
     import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
 
     const firebaseConfig = {
@@ -588,12 +588,13 @@
     let currentTab = 'budget';
     let currentModalTarget = null;
     let dataRef = null;
-    let isDataLoadedFromServer = false;
+    let isInitialLoadDone = false; // 서버 최초 수신 확인 플래그
 
     let calDate = new Date();
     let selectedCalDayStr = null;
 
-    const defaultTemplate = {
+    // 기본 메모리 구조
+    window.appData = {
       weddingDate: "",
       targetTotalBudget: 30000000,
       targetGroomBudget: 15000000,
@@ -602,19 +603,26 @@
       todo: {}
     };
 
-    window.appData = JSON.parse(localStorage.getItem('wedding_local_backup')) || defaultTemplate;
+    // 로컬 백업이 있으면 임시 복원
+    const localBackup = localStorage.getItem('wedding_local_backup');
+    if (localBackup) {
+      try {
+        window.appData = Object.assign(window.appData, JSON.parse(localBackup));
+      } catch (e) { console.error(e); }
+    }
 
     try {
       const app = initializeApp(firebaseConfig);
       const db = getDatabase(app);
       dataRef = ref(db, 'wedding_sync');
 
+      // 클라우드 실시간 리스너 (서버 기준 동기화)
       onValue(dataRef, (snapshot) => {
         const val = snapshot.val();
         if (val) {
+          // 서버에 저장된 진짜 데이터가 들어오면 덮어쓰기
           window.appData = {
-            ...defaultTemplate,
-            ...val,
+            weddingDate: val.weddingDate || "",
             targetTotalBudget: Number(val.targetTotalBudget || 30000000),
             targetGroomBudget: Number(val.targetGroomBudget || 15000000),
             targetBrideBudget: Number(val.targetBrideBudget || 15000000),
@@ -622,12 +630,9 @@
             todo: val.todo || {}
           };
           localStorage.setItem('wedding_local_backup', JSON.stringify(window.appData));
-        } else {
-          if (!isDataLoadedFromServer) {
-            set(dataRef, defaultTemplate);
-          }
         }
-        isDataLoadedFromServer = true;
+        
+        isInitialLoadDone = true; // 서버 데이터 확인 완료 -> 이제부터만 저장 허용
         updateSyncStatus('online', 'LIVE CLOUD SYNC');
         render();
       }, (error) => {
@@ -648,20 +653,26 @@
       }
     }
 
+    // 데이터 저장 함수 (사용자가 직접 버튼을 누르거나 추가했을 때만 동작)
     function syncState() {
-      if (!isDataLoadedFromServer) {
-        console.warn("데이터를 불러오는 중에는 저장이 차단됩니다.");
+      // 서버로부터 기존 데이터를 한 번도 조회하지 않은 로딩 상태라면 절대 저장 금지 (증발 방지턱)
+      if (!isInitialLoadDone) {
+        console.warn("데이터 로딩 중에는 서버 저장이 차단됩니다.");
         return;
       }
+
       localStorage.setItem('wedding_local_backup', JSON.stringify(window.appData));
+      
       if (dataRef) {
-        set(dataRef, window.appData).catch(err => {
+        set(dataRef, window.appData).then(() => {
+          console.log("Firebase 저장 완료");
+        }).catch(err => {
           console.error("클라우드 저장 실패:", err);
           updateSyncStatus('error', 'SYNC FAILED');
         });
       }
       render();
-    }
+    } 
 
     function calculateDDay(dateStr) {
       if (!dateStr) return { text: "D-DAY 설정", label: "터치하여 날짜 설정" };
