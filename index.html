@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
   <title>OUR WEDDING DASHBOARD</title>
-
- <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%2319121d%22/><text x=%2250%%22 y=%2255%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2265%22>💖</text></svg>">
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -633,22 +630,26 @@
       updateSyncStatus('error', 'OFFLINE');
     }
 
-    function syncState() {
+    // 서버에 저장이 완료될 때까지 확실하게 대기하는 비동기 함수
+    async function syncState() {
       localStorage.setItem('wedding_vault_data', JSON.stringify(window.appData));
       
       if (dataRef) {
         updateSyncStatus('saving', 'SAVING...');
-        set(dataRef, window.appData)
-          .then(() => {
-            updateSyncStatus('online', 'LIVE CLOUD SYNC');
-          })
-          .catch((err) => {
-            console.error("Firebase Write Error:", err);
-            updateSyncStatus('error', 'WRITE BLOCKED');
-            alert("저장 실패: " + err.message);
-          });
+        try {
+          await set(dataRef, window.appData);
+          updateSyncStatus('online', 'LIVE CLOUD SYNC');
+          console.log("Firebase 클라우드 동기화 성공");
+          return true;
+        } catch (err) {
+          console.error("Firebase Write Error:", err);
+          updateSyncStatus('error', 'WRITE BLOCKED');
+          alert("저장 실패: " + err.message);
+          return false;
+        }
       }
       render();
+      return true;
     }
 
     function calculateDDay(dateStr) {
@@ -689,7 +690,7 @@
       render();
     }
 
-    function moveCategoryOrder(category, direction) {
+    async function moveCategoryOrder(category, direction) {
       const obj = window.appData[currentTab];
       const keys = Object.keys(obj);
       const index = keys.indexOf(category);
@@ -706,7 +707,7 @@
       const newObj = {};
       newKeys.forEach(k => { newObj[k] = obj[k]; });
       window.appData[currentTab] = newObj;
-      syncState();
+      await syncState();
     }
 
     function exportToExcel() {
@@ -1091,7 +1092,7 @@
       }
     }
 
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
       const target = e.target.closest('[data-action]');
       if (!target) return;
 
@@ -1101,23 +1102,23 @@
 
       if (action === 'move-order') {
         const dir = target.getAttribute('data-dir');
-        moveCategoryOrder(cat, dir);
+        await moveCategoryOrder(cat, dir);
       } else if (action === 'toggle-todo') {
         const items = window.appData.todo[cat];
         const t = items.find(i => i.id === id);
         if (t) {
           t.done = !t.done;
-          syncState();
+          await syncState();
         }
       } else if (action === 'del-item') {
         if (confirm('이 항목을 삭제하시겠습니까?')) {
           window.appData[currentTab][cat] = window.appData[currentTab][cat].filter(i => i.id !== id);
-          syncState();
+          await syncState();
         }
       } else if (action === 'del-group') {
         if (confirm(`[${cat}] 카테고리와 내부 모든 항목을 삭제하시겠습니까?`)) {
           delete window.appData[currentTab][cat];
-          syncState();
+          await syncState();
         }
       } else if (action === 'edit-group') {
         openEditGroupModal(cat);
@@ -1287,23 +1288,27 @@
       document.getElementById('modalOverlay').style.display = 'none';
     }
 
-    function submitModal() {
+    async function submitModal() {
       if (!currentModalTarget) return;
+
+      const submitBtn = document.getElementById('modalSubmitBtn');
+      submitBtn.innerText = "저장 중...";
+      submitBtn.disabled = true;
 
       if (currentModalTarget.type === 'target_all_budgets') {
         window.appData.targetTotalBudget = Number(document.getElementById('inputTargetTotal').value || 0);
         window.appData.targetGroomBudget = Number(document.getElementById('inputTargetGroom').value || 0);
         window.appData.targetBrideBudget = Number(document.getElementById('inputTargetBride').value || 0);
-        syncState();
+        await syncState();
       } else if (currentModalTarget.type === 'wedding_date') {
         window.appData.weddingDate = document.getElementById('weddingDateInput').value;
-        syncState();
+        await syncState();
       } else if (currentModalTarget.type === 'add_group') {
         const name = document.getElementById('groupNameInput').value.trim();
         if (name) {
           if (!window.appData[currentTab]) window.appData[currentTab] = {};
           if (!window.appData[currentTab][name]) window.appData[currentTab][name] = [];
-          syncState();
+          await syncState();
         }
       } else if (currentModalTarget.type === 'edit_group') {
         const newName = document.getElementById('groupNameInput').value.trim();
@@ -1316,7 +1321,7 @@
             else newObj[k] = window.appData[currentTab][k];
           });
           window.appData[currentTab] = newObj;
-          syncState();
+          await syncState();
         }
       } else if (currentModalTarget.type === 'add_item') {
         const cat = currentModalTarget.category;
@@ -1335,7 +1340,7 @@
             if (!window.appData.todo[cat]) window.appData.todo[cat] = [];
             window.appData.todo[cat].push({ id: Date.now().toString(), name, done: false, assignee, date, note });
           }
-          syncState();
+          await syncState();
         }
       } else if (currentModalTarget.type === 'edit_item') {
         const cat = currentModalTarget.category;
@@ -1357,10 +1362,14 @@
           } else {
             item.assignee = document.getElementById('itemAssigneeInput').value;
           }
-          syncState();
+          await syncState();
         }
       }
+
+      submitBtn.innerText = "저장하기";
+      submitBtn.disabled = false;
       closeModal();
+      render();
     }
 
     window.addEventListener('DOMContentLoaded', () => {
