@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <title>OUR WEDDING DASHBOARD</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💖</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%2319121d%22/><text x=%2250%%22 y=%2255%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-size=%2265%22>💖</text></svg>">
+  
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="결혼대작전">
+  <meta name="theme-color" content="#110d13">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- SheetJS 엑셀 라이브러리 -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #110d13;
+      --card-bg: rgba(28, 20, 31, 0.72);
+      --card-border: rgba(255, 214, 230, 0.12);
+      --accent-pink: #f472b6;
+      --accent-rose: #fb7185;
+      --accent-champagne: #fed7aa;
+      --accent-emerald: #34d399;
+      --accent-blue: #60a5fa;
+      --accent-purple: #c084fc;
+      --text-main: #fdf2f8;
+      --text-muted: #9d8ba2;
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "SF Pro Display", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(244, 114, 182, 0.15) 0px, transparent 55%),
+        radial-gradient(at 100% 100%, rgba(251, 113, 133, 0.12) 0px, transparent 55%),
+        radial-gradient(at 50% 50%, rgba(254, 215, 170, 0.05) 0px, transparent 60%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 95px);
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: 18px 20px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2.8px;
+      color: var(--accent-pink);
+      font-weight: 800;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .export-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: #fdf2f8;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .export-btn.excel { border-color: rgba(52, 211, 153, 0.35); color: #6ee7b7; background: rgba(52, 211, 153, 0.12); }
+    .export-btn.report { border-color: rgba(244, 114, 182, 0.35); color: #fbcfe8; background: rgba(244, 114, 182, 0.12); }
+    .export-btn:active { transform: scale(0.96); }
+
+    .sync-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 5px 9px;
+      border-radius: 20px;
+      border: 1px solid var(--card-border);
+    }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background-color: var(--accent-champagne); }
+    .sync-dot.online { background-color: var(--accent-emerald); box-shadow: 0 0 10px var(--accent-emerald); }
+    .sync-dot.error { background-color: var(--accent-rose); box-shadow: 0 0 10px var(--accent-rose); }
+
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 0 16px;
+    }
+
+    /* D-Day Card */
+    .dday-card {
+      background: linear-gradient(135deg, rgba(244, 114, 182, 0.16), rgba(254, 215, 170, 0.08));
+      border: 1px solid rgba(244, 114, 182, 0.28);
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .dday-badge {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      text-shadow: 0 0 12px rgba(244, 114, 182, 0.4);
+    }
+    .dday-info { font-size: 12px; color: var(--text-muted); text-align: right; }
+    .dday-info span { color: var(--text-main); font-weight: 600; }
+
+    /* Overview KPI Card */
+    .kpi-container {
+      background: var(--card-bg);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 20px 45px -15px rgba(0, 0, 0, 0.5);
+    }
+
+    .kpi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .target-budget-pill {
+      background: rgba(244, 114, 182, 0.15);
+      border: 1px solid rgba(244, 114, 182, 0.3);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fbcfe8;
+      cursor: pointer;
+    }
+
+    .kpi-values {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .kpi-main-number {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(180deg, #ffffff 30%, #fbcfe8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .kpi-sub-number { font-size: 12px; color: var(--text-muted); text-align: right; line-height: 1.5; }
+    .kpi-sub-number span { color: var(--text-main); font-weight: 600; }
+
+    /* Dual Track Bars */
+    .progress-bar-title {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .progress-track {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progress-fill-plan { height: 100%; background: linear-gradient(90deg, #818cf8, var(--accent-purple)); border-radius: 99px; }
+    .progress-fill-actual { height: 100%; background: linear-gradient(90deg, var(--accent-rose), var(--accent-pink)); border-radius: 99px; }
+
+    /* 신랑 / 신부 개별 예산 바 카드 */
+    .individual-budget-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .indiv-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+    .indiv-name { font-weight: 700; cursor: pointer; }
+    .indiv-name.groom { color: var(--accent-blue); }
+    .indiv-name.bride { color: var(--accent-pink); }
+    .indiv-amount { font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
+    .indiv-track {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .indiv-track:last-child { margin-bottom: 0; }
+    .indiv-fill-groom { height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 99px; }
+    .indiv-fill-bride { height: 100%; background: linear-gradient(90deg, #ec4899, #f472b6); border-radius: 99px; }
+
+    /* 3자 정산 요약 HUD */
+    .settlement-hud {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .settle-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 10px 6px;
+      text-align: center;
+    }
+    .settle-box.groom { border-top: 2px solid var(--accent-blue); }
+    .settle-box.bride { border-top: 2px solid var(--accent-pink); }
+    .settle-box.joint { border-top: 2px solid var(--accent-champagne); }
+    .settle-label { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+    .settle-box.groom .settle-label { color: var(--accent-blue); }
+    .settle-box.bride .settle-label { color: var(--accent-pink); }
+    .settle-box.joint .settle-label { color: var(--accent-champagne); }
+    .settle-amount { font-size: 13px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+
+    .settle-guide-card {
+      background: rgba(244, 114, 182, 0.08);
+      border: 1px dashed rgba(244, 114, 182, 0.25);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      font-size: 12px;
+      color: #fbcfe8;
+      margin-bottom: 16px;
+    }
+
+    /* 그룹 카드 */
+    .group-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.25);
+    }
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .group-title-row { display: flex; align-items: center; gap: 8px; }
+    .group-title { font-size: 16px; font-weight: 600; cursor: pointer; }
+    .order-btns { display: flex; gap: 3px; }
+    .order-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      display: grid;
+      place-content: center;
+    }
+    .add-sub-btn {
+      background: rgba(244, 114, 182, 0.12);
+      border: 1px solid rgba(244, 114, 182, 0.25);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .sub-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .sub-item-row:last-child { border-bottom: none; }
+    .sub-item-left { display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden; }
+
+    .checkbox-custom {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      border: 1.5px solid rgba(244, 114, 182, 0.35);
+      background: transparent;
+      display: grid;
+      place-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .checkbox-custom.checked {
+      background: var(--accent-rose);
+      border-color: var(--accent-rose);
+      box-shadow: 0 0 10px rgba(251, 113, 133, 0.5);
+    }
+    .checkbox-custom.checked::after { content: '✓'; color: #fff; font-size: 13px; font-weight: 800; }
+
+    .sub-item-info { display: flex; flex-direction: column; gap: 3px; cursor: pointer; }
+    .sub-item-name { font-size: 15px; font-weight: 400; color: var(--text-main); }
+    .sub-item-name.done { text-decoration: line-through; color: var(--text-muted); }
+    .sub-item-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+    .tag-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px; }
+    .tag-groom { background: rgba(96, 165, 250, 0.15); color: #93c5fd; border: 1px solid rgba(96, 165, 250, 0.3); }
+    .tag-bride { background: rgba(244, 114, 182, 0.15); color: #f472b6; border: 1px solid rgba(244, 114, 182, 0.3); }
+    .tag-joint { background: rgba(254, 215, 170, 0.15); color: #fed7aa; border: 1px solid rgba(254, 215, 170, 0.3); }
+    .date-badge { font-size: 10px; color: #a5b4fc; background: rgba(99, 102, 241, 0.12); padding: 2px 6px; border-radius: 4px; }
+    .note-preview { font-size: 11px; color: var(--text-muted); max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .sub-item-right { display: flex; align-items: center; gap: 10px; }
+    .clickable-money { display: flex; flex-direction: column; align-items: flex-end; cursor: pointer; padding: 3px 5px; }
+    .budget-tag { font-size: 11px; color: var(--text-muted); }
+    .spent-tag { font-size: 14px; font-weight: 600; color: #fff; }
+    .del-btn { color: #5d4a5f; background: transparent; border: none; font-size: 16px; cursor: pointer; padding: 2px; }
+
+    /* 📅 실시간 캘린더 전용 스타일 */
+    .calendar-container {
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-xl);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .cal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .cal-title { font-size: 16px; font-weight: 700; color: #fff; }
+    .cal-nav-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .cal-grid-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .cal-grid-days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-cell {
+      min-height: 52px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      padding: 4px 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+    }
+    .cal-cell.other-month { opacity: 0.25; }
+    .cal-cell.today { border-color: var(--accent-pink); background: rgba(244, 114, 182, 0.08); }
+    .cal-cell.selected { border-color: #fff; background: rgba(255, 255, 255, 0.12); }
+
+    .cal-day-num { font-size: 11px; font-weight: 600; margin-bottom: 2px; }
+    .cal-cell.sun .cal-day-num { color: #f87171; }
+    .cal-cell.sat .cal-day-num { color: #60a5fa; }
+
+    .cal-money-pill {
+      font-size: 9px;
+      background: rgba(244, 114, 182, 0.25);
+      color: #fbcfe8;
+      border-radius: 4px;
+      padding: 1px 3px;
+      font-weight: 700;
+      white-space: nowrap;
+      margin-bottom: 2px;
+    }
+    .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent-champagne); }
+
+    .cal-detail-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      margin-top: 14px;
+    }
+    .cal-detail-header {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-champagne);
+      margin-bottom: 10px;
+    }
+
+    /* 플로팅 액션 버튼 */
+    .float-action-btn {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom) + 70px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--accent-rose), var(--accent-pink));
+      color: #1a0f18;
+      padding: 13px 26px;
+      border-radius: 99px;
+      font-size: 14px;
+      font-weight: 700;
+      border: none;
+      box-shadow: 0 10px 25px rgba(244, 114, 182, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 80;
+    }
+
+    /* 📱 iOS 모바일 하단 네이티브 탭바 */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(env(safe-area-inset-bottom) + 55px);
+      background: rgba(18, 13, 20, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      padding-top: 6px;
+      z-index: 90;
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 4px 18px;
+    }
+    .nav-item.active { color: var(--accent-pink); }
+    .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
+
+    /* 모달 */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: none;
+      align-items: flex-end;
+      z-index: 100;
+    }
+    .modal-content {
+      background: #19121d;
+      border-top: 1px solid var(--card-border);
+      border-radius: 28px 28px 0 0;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 22px 22px calc(env(safe-area-inset-bottom) + 30px);
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
+    }
+    .input-label { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; display: block; font-weight: 500; }
+    .input-field, .select-field, .textarea-field {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      color: #fff;
+      font-size: 15px;
+      margin-bottom: 12px;
+      outline: none;
+    }
+    .quick-chips { display: flex; gap: 6px; margin-top: -6px; margin-bottom: 12px; flex-wrap: wrap; }
+    .chip-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 4px 9px;
+      border-radius: 12px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .textarea-field { resize: none; height: 60px; }
+    .select-field option { background: #19121d; color: #fff; }
+    .submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #fff, #fce7f3);
+      color: #1c101c;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    /* 🖨️ A4 규격 정식 웨딩 결산 보고서 전용 출력 스타일 */
+    @media print {
+      body { background: #fff !important; color: #000 !important; padding: 0 !important; }
+      header, .header-right, .bottom-nav, .float-action-btn, .order-btns, .del-btn, .add-sub-btn, .view-tabs { display: none !important; }
+      .container { max-width: 100% !important; padding: 0 !important; }
+      .kpi-container, .group-card, .individual-budget-card, .settle-box, .settle-guide-card {
+        background: #fff !important; color: #000 !important; border: 1px solid #ccc !important; box-shadow: none !important; backdrop-filter: none !important;
+      }
+      .kpi-main-number { -webkit-text-fill-color: #000 !important; color: #000 !important; font-size: 26px !important; }
+      .sub-item-name { color: #000 !important; }
+    }
+  </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCGLOgozh7NE4uvxFnqYANp1H4KtU90slU",
+      authDomain: "in-jesus-we-are-one.firebaseapp.com",
+      databaseURL: "https://in-jesus-we-are-one-default-rtdb.firebaseio.com",
+      projectId: "in-jesus-we-are-one",
+      storageBucket: "in-jesus-we-are-one.firebasestorage.app",
+      messagingSenderId: "266520125384",
+      appId: "1:266520125384:web:e41e3a197a59e2ce1aeafd",
+      measurementId: "G-QMFF63VJ1F"
+    };
+
+    let currentTab = 'budget';
+    let currentModalTarget = null;
+    let dataRef = null;
+
+    // 캘린더 네비게이션 상태
+    let calDate = new Date();
+    let selectedCalDayStr = null;
+
+    // 기존 데이터 무손실 안전 기본 템플릿
+    const defaultTemplate = {
+      weddingDate: "",
+      targetTotalBudget: 30000000,
+      targetGroomBudget: 15000000,
+      targetBrideBudget: 15000000,
+      budget: {},
+      todo: {}
+    };
+
+    window.appData = JSON.parse(localStorage.getItem('wedding_local_backup')) || defaultTemplate;
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      dataRef = ref(db, 'wedding_sync');
+
+      onValue(dataRef, (snapshot) => {
+        const val = snapshot.val();
+        if (val) {
+          window.appData = {
+            ...defaultTemplate,
+            ...val,
+            targetTotalBudget: Number(val.targetTotalBudget || 30000000),
+            targetGroomBudget: Number(val.targetGroomBudget || 15000000),
+            targetBrideBudget: Number(val.targetBrideBudget || 15000000),
+            budget: val.budget || {},
+            todo: val.todo || {}
+          };
+        } else {
+          set(dataRef, defaultTemplate);
+        }
+        updateSyncStatus('online', 'LIVE CLOUD SYNC');
+        render();
+      }, (error) => {
+        console.error(error);
+        updateSyncStatus('error', 'SYNC DENIED');
+        render();
+      });
+    } catch (e) {
+      console.error(e);
+      updateSyncStatus('error', 'OFFLINE MODE');
+      render();
+    }
+
+    function updateSyncStatus(state, text) {
+      const dot = document.getElementById('syncDot');
+      const label = document.getElementById('syncIndicator');
+      dot.className = 'sync-dot ' + (state === 'online' ? 'online' : 'error');
+      label.innerText = text;
+    }
+
+    function syncState() {
+      localStorage.setItem('wedding_local_backup', JSON.stringify(window.appData));
+      if (dataRef) {
+        set(dataRef, window.appData).catch(err => {
+          console.warn("Sync failed, local cached:", err);
+        });
+      }
+      render();
+    }
+
+    function calculateDDay(dateStr) {
+      if (!dateStr) return { text: "D-DAY 설정", label: "터치하여 날짜 설정" };
+      const target = new Date(dateStr);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      target.setHours(0,0,0,0);
+      const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+      
+      let badge = "";
+      if (diff > 0) badge = `D-${diff}`;
+      else if (diff === 0) badge = "D-DAY";
+      else badge = `D+${Math.abs(diff)}`;
+
+      return { text: badge, label: dateStr };
+    }
+
+    function getTagClass(tag) {
+      if (tag === '신랑') return 'tag-groom';
+      if (tag === '신부') return 'tag-bride';
+      return 'tag-joint';
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+      });
+      
+      const floatBtn = document.getElementById('floatingBtn');
+      if (tab === 'calendar') {
+        floatBtn.style.display = 'none';
+      } else {
+        floatBtn.style.display = 'flex';
+        document.getElementById('floatingBtnText').innerText = tab === 'budget' ? '상위 예산군 추가' : '상위 일정군 추가';
+      }
+      render();
+    }
+
+    function moveCategoryOrder(category, direction) {
+      const obj = window.appData[currentTab];
+      const keys = Object.keys(obj);
+      const index = keys.indexOf(category);
+      if (index === -1) return;
+
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= keys.length) return;
+
+      const newKeys = [...keys];
+      const temp = newKeys[index];
+      newKeys[index] = newKeys[targetIndex];
+      newKeys[targetIndex] = temp;
+
+      const newObj = {};
+      newKeys.forEach(k => { newObj[k] = obj[k]; });
+      window.appData[currentTab] = newObj;
+      syncState();
+    }
+
+    /* 📊 1. 스타일리시 엑셀 내보내기 */
+    function exportToExcel() {
+      if (!window.XLSX) { alert("엑셀 모듈 준비 중..."); return; }
+      const wb = XLSX.utils.book_new();
+
+      const budgetRows = [
+        ["카테고리", "항목명", "결제자", "결제일", "계획예산(원)", "실제집행액(원)", "차액(원)", "집행률(%)", "특약 및 메모"]
+      ];
+      const budgetData = window.appData.budget || {};
+      let totalPlan = 0, totalSpent = 0;
+
+      Object.keys(budgetData).forEach(cat => {
+        (budgetData[cat] || []).forEach(i => {
+          const b = Number(i.budget || 0);
+          const s = Number(i.spent || 0);
+          totalPlan += b; totalSpent += s;
+          budgetRows.push([cat, i.name, i.payer || "공동", i.date || "-", b, s, b - s, b > 0 ? ((s / b) * 100).toFixed(1) + "%" : "0%", i.note || ""]);
+        });
+      });
+
+      budgetRows.push([]);
+      budgetRows.push(["[전체 총 목표]", "", "", "", Number(window.appData.targetTotalBudget || 0), "", "", "", ""]);
+      budgetRows.push(["[신랑 목표예산]", "", "", "", Number(window.appData.targetGroomBudget || 0), "", "", "", ""]);
+      budgetRows.push(["[신부 목표예산]", "", "", "", Number(window.appData.targetBrideBudget || 0), "", "", "", ""]);
+      budgetRows.push(["[항목 계획 합계]", "", "", "", totalPlan, totalSpent, totalPlan - totalSpent, totalPlan > 0 ? ((totalSpent / totalPlan) * 100).toFixed(1) + "%" : "0%", ""]);
+
+      const wsBudget = XLSX.utils.aoa_to_sheet(budgetRows);
+      XLSX.utils.book_append_sheet(wb, wsBudget, "예산_종합정산");
+
+      const todoRows = [["일정군", "할 일 항목", "담당자", "마감일", "완료여부", "상세메모"]];
+      const todoData = window.appData.todo || {};
+      Object.keys(todoData).forEach(cat => {
+        (todoData[cat] || []).forEach(i => {
+          todoRows.push([cat, i.name, i.assignee || "함께", i.date || "-", i.done ? "완료(O)" : "미완료(X)", i.note || ""]);
+        });
+      });
+      const wsTodo = XLSX.utils.aoa_to_sheet(todoRows);
+      XLSX.utils.book_append_sheet(wb, wsTodo, "웨딩_체크리스트");
+
+      const today = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `결혼대작전_웨딩결산_${today}.xlsx`);
+    }
+
+    /* 📄 2. 한글 스타일 정식 A4 웨딩 결산 보고서 (인쇄 / PDF) */
+    function exportReport() {
+      window.print();
+    }
+
+    /* 📅 캘린더 렌더링 엔진 */
+    function renderCalendar() {
+      const year = calDate.getFullYear();
+      const month = calDate.getMonth(); // 0-indexed
+
+      document.getElementById('calTitle').innerText = `${year}년 ${month + 1}월`;
+
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const prevLastDay = new Date(year, month, 0).getDate();
+
+      const grid = document.getElementById('calGridDays');
+      grid.innerHTML = '';
+
+      // 날짜별 데이터 매핑 (지출액 합계, 할 일 리스트)
+      const dateMap = {};
+
+      // 예산 항목 수집
+      Object.keys(window.appData.budget || {}).forEach(cat => {
+        (window.appData.budget[cat] || []).forEach(item => {
+          if (item.date) {
+            if (!dateMap[item.date]) dateMap[item.date] = { spent: 0, items: [], todos: [] };
+            dateMap[item.date].spent += Number(item.spent || 0);
+            dateMap[item.date].items.push({ ...item, category: cat });
+          }
+        });
+      });
+
+      // 할 일 항목 수집
+      Object.keys(window.appData.todo || {}).forEach(cat => {
+        (window.appData.todo[cat] || []).forEach(todo => {
+          if (todo.date) {
+            if (!dateMap[todo.date]) dateMap[todo.date] = { spent: 0, items: [], todos: [] };
+            dateMap[todo.date].todos.push({ ...todo, category: cat });
+          }
+        });
+      });
+
+      // 이전 달 날짜 채우기
+      for (let x = firstDayIndex; x > 0; x--) {
+        const d = prevLastDay - x + 1;
+        const cell = document.createElement('div');
+        cell.className = 'cal-cell other-month';
+        cell.innerHTML = `<span class="cal-day-num">${d}</span>`;
+        grid.appendChild(cell);
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      // 이번 달 날짜 생성
+      for (let i = 1; i <= lastDay; i++) {
+        const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+        const dayOfWeek = new Date(year, month, i).getDay();
+
+        const cell = document.createElement('div');
+        let classes = 'cal-cell';
+        if (dayOfWeek === 0) classes += ' sun';
+        if (dayOfWeek === 6) classes += ' sat';
+        if (dayStr === todayStr) classes += ' today';
+        if (dayStr === selectedCalDayStr) classes += ' selected';
+        cell.className = classes;
+
+        const info = dateMap[dayStr];
+        let moneyBadge = '';
+        let dotBadge = '';
+
+        if (info && info.spent > 0) {
+          const shortMoney = info.spent >= 10000 ? `₩${Math.round(info.spent / 10000)}만` : `₩${info.spent.toLocaleString()}`;
+          moneyBadge = `<span class="cal-money-pill">${shortMoney}</span>`;
+        }
+        if (info && info.todos.length > 0) {
+          dotBadge = `<span class="cal-dot"></span>`;
+        }
+
+        cell.innerHTML = `
+          <span class="cal-day-num">${i}</span>
+          ${moneyBadge}
+          ${dotBadge}
+        `;
+
+        cell.addEventListener('click', () => {
+          selectedCalDayStr = dayStr;
+          renderCalendar();
+          renderCalDetail(dayStr, info);
+        });
+
+        grid.appendChild(cell);
+      }
+
+      // 기본 선택일 디테일 갱신
+      if (selectedCalDayStr && dateMap[selectedCalDayStr]) {
+        renderCalDetail(selectedCalDayStr, dateMap[selectedCalDayStr]);
+      } else if (selectedCalDayStr) {
+        renderCalDetail(selectedCalDayStr, null);
+      }
+    }
+
+    function renderCalDetail(dateStr, info) {
+      const detailContainer = document.getElementById('calDetailContainer');
+      if (!info || (info.items.length === 0 && info.todos.length === 0)) {
+        detailContainer.innerHTML = `
+          <div class="cal-detail-card">
+            <div class="cal-detail-header">📌 ${dateStr} 일정 및 지출</div>
+            <div style="font-size:12px; color:var(--text-muted);">등록된 지출 및 할 일이 없습니다.</div>
+          </div>
+        `;
+        return;
+      }
+
+      let itemsHtml = '';
+      info.items.forEach(it => {
+        itemsHtml += `
+          <div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+            <span>💳 [${it.category}] ${it.name} (${it.payer})</span>
+            <span style="font-weight:700; color:#fff;">₩${Number(it.spent).toLocaleString()}</span>
+          </div>
+        `;
+      });
+
+      let todosHtml = '';
+      info.todos.forEach(td => {
+        todosHtml += `
+          <div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.04);">
+            <span style="${td.done ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">✅ [${td.category}] ${td.name} (${td.assignee})</span>
+            <span style="font-size:11px; color:${td.done ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${td.done ? '완료' : '진행중'}</span>
+          </div>
+        `;
+      });
+
+      detailContainer.innerHTML = `
+        <div class="cal-detail-card">
+          <div class="cal-detail-header">📌 ${dateStr} 종합 현황 (총 지출: ₩${info.spent.toLocaleString()})</div>
+          ${itemsHtml ? `<div style="margin-bottom:8px;">${itemsHtml}</div>` : ''}
+          ${todosHtml ? `<div>${todosHtml}</div>` : ''}
+        </div>
+      `;
+    }
+
+    function render() {
+      if (!window.appData) return;
+
+      const dday = calculateDDay(window.appData.weddingDate);
+      document.getElementById('ddayCount').innerText = dday.text;
+      document.getElementById('targetDateText').innerText = dday.label;
+
+      const mainContainer = document.getElementById('sectionContainer');
+      const calendarWrapper = document.getElementById('calendarWrapper');
+      const budgetExtraUI = document.getElementById('budgetExtraUI');
+      const kpiCard = document.getElementById('kpiCard');
+
+      if (currentTab === 'calendar') {
+        kpiCard.style.display = 'none';
+        budgetExtraUI.style.display = 'none';
+        mainContainer.style.display = 'none';
+        calendarWrapper.style.display = 'block';
+        renderCalendar();
+        return;
+      }
+
+      kpiCard.style.display = 'block';
+      calendarWrapper.style.display = 'none';
+      mainContainer.style.display = 'block';
+      mainContainer.innerHTML = '';
+
+      const targetTotal = Number(window.appData.targetTotalBudget || 0);
+      const targetGroom = Number(window.appData.targetGroomBudget || 0);
+      const targetBride = Number(window.appData.targetBrideBudget || 0);
+
+      document.getElementById('targetBudgetDisplay').innerText = `전체 ₩${targetTotal.toLocaleString()} ✎`;
+
+      if (currentTab === 'budget') {
+        budgetExtraUI.style.display = 'block';
+
+        let grandPlan = 0;
+        let grandSpent = 0;
+        let groomSpent = 0;
+        let brideSpent = 0;
+        let jointSpent = 0;
+
+        const data = window.appData.budget || {};
+        const categories = Object.keys(data);
+
+        categories.forEach((category, idx) => {
+          const items = data[category] || [];
+          let catSpent = 0;
+          let catPlan = 0;
+
+          const card = document.createElement('div');
+          card.className = 'group-card';
+
+          let rowsHtml = '';
+          items.forEach(item => {
+            const b = Number(item.budget || 0);
+            const s = Number(item.spent || 0);
+            catPlan += b;
+            catSpent += s;
+
+            const payer = item.payer || '공동';
+            if (payer === '신랑') groomSpent += s;
+            else if (payer === '신부') brideSpent += s;
+            else jointSpent += s;
+
+            rowsHtml += `
+              <div class="sub-item-row">
+                <div class="sub-item-left">
+                  <div class="sub-item-info" data-action="edit-item" data-cat="${encodeURIComponent(category)}" data-id="${item.id}">
+                    <span class="sub-item-name">${item.name}</span>
+                    <div class="sub-item-meta">
+                      <span class="tag-badge ${getTagClass(payer)}">${payer} 결제</span>
+                      ${item.date ? `<span class="date-badge">🗓️ ${item.date}</span>` : ''}
+                      ${item.note ? `<span class="note-preview">📝 ${item.note}</span>` : ''}
+                    </div>
+                  </div>
+                </div>
+                <div class="sub-item-right">
+                  <div class="clickable-money" data-action="edit-item" data-cat="${encodeURIComponent(category)}" data-id="${item.id}">
+                    <div class="budget-tag">계획 ₩${b.toLocaleString()}</div>
+                    <div class="spent-tag">₩${s.toLocaleString()} ✎</div>
+                  </div>
+                  <button class="del-btn" data-action="del-item" data-cat="${encodeURIComponent(category)}" data-id="${item.id}">×</button>
+                </div>
+              </div>
+            `;
+          });
+
+          grandPlan += catPlan;
+          grandSpent += catSpent;
+
+          card.innerHTML = `
+            <div class="group-header">
+              <div>
+                <div class="group-title-row">
+                  <span class="group-title" data-action="edit-group" data-cat="${encodeURIComponent(category)}">${category} ✎</span>
+                  <div class="order-btns">
+                    <button class="order-btn" data-action="move-order" data-dir="up" data-cat="${encodeURIComponent(category)}" ${idx === 0 ? 'style="opacity:0.25; pointer-events:none;"' : ''}>▲</button>
+                    <button class="order-btn" data-action="move-order" data-dir="down" data-cat="${encodeURIComponent(category)}" ${idx === categories.length - 1 ? 'style="opacity:0.25; pointer-events:none;"' : ''}>▼</button>
+                  </div>
+                  <button class="del-btn" data-action="del-group" data-cat="${encodeURIComponent(category)}" title="카테고리 삭제">🗑️</button>
+                </div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+                  집행 ₩${catSpent.toLocaleString()} / 계획 ₩${catPlan.toLocaleString()}
+                </div>
+              </div>
+              <button class="add-sub-btn" data-action="add-item" data-cat="${encodeURIComponent(category)}">+ 세부항목</button>
+            </div>
+            ${rowsHtml || '<div style="font-size:12px; color:#6b5a6d; padding:6px 0;">하위 항목이 없습니다.</div>'}
+          `;
+          mainContainer.appendChild(card);
+        });
+
+        // 상단 전체 게이지 계산
+        const spentRatio = targetTotal > 0 ? Math.min(Math.round((grandSpent / targetTotal) * 100), 100) : 0;
+        const planRatio = targetTotal > 0 ? Math.min(Math.round((grandPlan / targetTotal) * 100), 100) : 0;
+
+        document.getElementById('kpiMain').innerText = `${spentRatio}%`;
+        document.getElementById('kpiSpent').innerText = `₩${grandSpent.toLocaleString()}`;
+        document.getElementById('kpiTotal').innerText = `₩${grandPlan.toLocaleString()}`;
+        document.getElementById('planRatioText').innerText = `${planRatio}% (₩${grandPlan.toLocaleString()})`;
+        document.getElementById('planProgressBar').style.width = `${planRatio}%`;
+        document.getElementById('spentRatioText').innerText = `${spentRatio}% (₩${grandSpent.toLocaleString()})`;
+        document.getElementById('actualProgressBar').style.width = `${spentRatio}%`;
+
+        // 3자 정산 요약
+        document.getElementById('groomTotal').innerText = `₩${groomSpent.toLocaleString()}`;
+        document.getElementById('brideTotal').innerText = `₩${brideSpent.toLocaleString()}`;
+        document.getElementById('jointTotal').innerText = `₩${jointSpent.toLocaleString()}`;
+
+        // 신랑 / 신부 개별 예산 바
+        const groomRatio = targetGroom > 0 ? Math.min(Math.round((groomSpent / targetGroom) * 100), 100) : 0;
+        const brideRatio = targetBride > 0 ? Math.min(Math.round((brideSpent / targetBride) * 100), 100) : 0;
+
+        document.getElementById('groomIndivDesc').innerText = `₩${groomSpent.toLocaleString()} / ₩${targetGroom.toLocaleString()} (${groomRatio}%)`;
+        document.getElementById('groomIndivBar').style.width = `${groomRatio}%`;
+        document.getElementById('brideIndivDesc').innerText = `₩${brideSpent.toLocaleString()} / ₩${targetBride.toLocaleString()} (${brideRatio}%)`;
+        document.getElementById('brideIndivBar').style.width = `${brideRatio}%`;
+
+        // 5:5 차액 정산 가이드
+        const diff = Math.abs(groomSpent - brideSpent);
+        const half = Math.round(diff / 2);
+        let settleGuideText = "";
+        if (groomSpent > brideSpent) {
+          settleGuideText = `⚖️ 5:5 정산 시: 신부가 신랑에게 <strong>₩${half.toLocaleString()}</strong> 송금`;
+        } else if (brideSpent > groomSpent) {
+          settleGuideText = `⚖️ 5:5 정산 시: 신랑이 신부에게 <strong>₩${half.toLocaleString()}</strong> 송금`;
+        } else {
+          settleGuideText = `⚖️ 두 사람의 개별 지출이 완벽히 균형을 이루고 있습니다.`;
+        }
+        document.getElementById('settleGuideText').innerHTML = settleGuideText;
+
+      } else {
+        budgetExtraUI.style.display = 'none';
+
+        let totalTasks = 0;
+        let completedTasks = 0;
+        const data = window.appData.todo || {};
+        const categories = Object.keys(data);
+
+        categories.forEach((category, idx) => {
+          const items = data[category] || [];
+          const card = document.createElement('div');
+          card.className = 'group-card';
+
+          let rowsHtml = '';
+          items.forEach(item => {
+            totalTasks++;
+            if (item.done) completedTasks++;
+            const assignee = item.assignee || '함께';
+            rowsHtml += `
+              <div class="sub-item-row">
+                <div class="sub-item-left">
+                  <div class="checkbox-custom ${item.done ? 'checked' : ''}" data-action="toggle-todo" data-cat="${encodeURIComponent(category)}" data-id="${item.id}"></div>
+                  <div class="sub-item-info" data-action="edit-item" data-cat="${encodeURIComponent(category)}" data-id="${item.id}">
+                    <span class="sub-item-name ${item.done ? 'done' : ''}">${item.name}</span>
+                    <div class="sub-item-meta">
+                      <span class="tag-badge ${getTagClass(assignee)}">${assignee} 담당</span>
+                      ${item.date ? `<span class="date-badge">🗓️ ${item.date}</span>` : ''}
+                      ${item.note ? `<span class="note-preview">📝 ${item.note}</span>` : ''}
+                    </div>
+                  </div>
+                </div>
+                <div class="sub-item-right">
+                  <button class="del-btn" data-action="del-item" data-cat="${encodeURIComponent(category)}" data-id="${item.id}">×</button>
+                </div>
+              </div>
+            `;
+          });
+
+          card.innerHTML = `
+            <div class="group-header">
+              <div class="group-title-row">
+                <span class="group-title" data-action="edit-group" data-cat="${encodeURIComponent(category)}">${category} ✎</span>
+                <div class="order-btns">
+                  <button class="order-btn" data-action="move-order" data-dir="up" data-cat="${encodeURIComponent(category)}" ${idx === 0 ? 'style="opacity:0.25; pointer-events:none;"' : ''}>▲</button>
+                  <button class="order-btn" data-action="move-order" data-dir="down" data-cat="${encodeURIComponent(category)}" ${idx === categories.length - 1 ? 'style="opacity:0.25; pointer-events:none;"' : ''}>▼</button>
+                </div>
+                <button class="del-btn" data-action="del-group" data-cat="${encodeURIComponent(category)}" title="카테고리 삭제">🗑️</button>
+              </div>
+              <button class="add-sub-btn" data-action="add-item" data-cat="${encodeURIComponent(category)}">+ 할일</button>
+            </div>
+            ${rowsHtml || '<div style="font-size:12px; color:#6b5a6d; padding:6px 0;">등록된 일정이 없습니다.</div>'}
+          `;
+          mainContainer.appendChild(card);
+        });
+
+        const percent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        document.getElementById('kpiMain').innerText = `${percent}%`;
+        document.getElementById('kpiSpent').innerText = `${completedTasks}개 완료`;
+        document.getElementById('kpiTotal').innerText = `${totalTasks}개 전체`;
+      }
+    }
+
+    // 전역 이벤트 위임
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+
+      const action = target.getAttribute('data-action');
+      const cat = target.getAttribute('data-cat') ? decodeURIComponent(target.getAttribute('data-cat')) : null;
+      const id = target.getAttribute('data-id');
+
+      if (action === 'move-order') {
+        const dir = target.getAttribute('data-dir');
+        moveCategoryOrder(cat, dir);
+      } else if (action === 'toggle-todo') {
+        const items = window.appData.todo[cat];
+        const t = items.find(i => i.id === id);
+        if (t) {
+          t.done = !t.done;
+          syncState();
+        }
+      } else if (action === 'del-item') {
+        if (confirm('이 항목을 삭제하시겠습니까?')) {
+          window.appData[currentTab][cat] = window.appData[currentTab][cat].filter(i => i.id !== id);
+          syncState();
+        }
+      } else if (action === 'del-group') {
+        if (confirm(`[${cat}] 카테고리와 내부 모든 항목을 삭제하시겠습니까?`)) {
+          delete window.appData[currentTab][cat];
+          syncState();
+        }
+      } else if (action === 'edit-group') {
+        openEditGroupModal(cat);
+      } else if (action === 'edit-item') {
+        openEditItemModal(cat, id);
+      } else if (action === 'add-item') {
+        openAddItemModal(cat);
+      }
+    });
+
+    // 전체/신랑/신부 예산 설정 모달
+    function openTargetBudgetModal() {
+      currentModalTarget = { type: 'target_all_budgets' };
+      document.getElementById('modalTitle').innerText = '목표 예산 상세 설정';
+      const tTotal = window.appData.targetTotalBudget || 30000000;
+      const tGroom = window.appData.targetGroomBudget || 15000000;
+      const tBride = window.appData.targetBrideBudget || 15000000;
+
+      document.getElementById('modalInputs').innerHTML = `
+        <label class="input-label">전체 총 목표 예산 (원)</label>
+        <input type="number" id="inputTargetTotal" class="input-field" value="${tTotal}">
+        
+        <label class="input-label" style="color:var(--accent-blue);">신랑 전용 목표 예산 (원)</label>
+        <input type="number" id="inputTargetGroom" class="input-field" value="${tGroom}">
+
+        <label class="input-label" style="color:var(--accent-pink);">신부 전용 목표 예산 (원)</label>
+        <input type="number" id="inputTargetBride" class="input-field" value="${tBride}">
+      `;
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function openDateModal() {
+      currentModalTarget = { type: 'wedding_date' };
+      document.getElementById('modalTitle').innerText = '예식 날짜 설정';
+      document.getElementById('modalInputs').innerHTML = `
+        <label class="input-label">예식일</label>
+        <input type="date" id="weddingDateInput" class="input-field" value="${window.appData.weddingDate || ''}">
+      `;
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function openEditGroupModal(category) {
+      currentModalTarget = { type: 'edit_group', oldCategory: category };
+      document.getElementById('modalTitle').innerText = '카테고리명 수정';
+      document.getElementById('modalInputs').innerHTML = `
+        <label class="input-label">카테고리 이름</label>
+        <input type="text" id="groupNameInput" class="input-field" value="${category}">
+      `;
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function openEditItemModal(category, id) {
+      const items = window.appData[currentTab][category] || [];
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      currentModalTarget = { type: 'edit_item', category, id };
+      document.getElementById('modalTitle').innerText = '항목 상세 수정';
+
+      if (currentTab === 'budget') {
+        const curPayer = item.payer || '공동';
+        document.getElementById('modalInputs').innerHTML = `
+          <label class="input-label">항목명</label>
+          <input type="text" id="itemNameInput" class="input-field" value="${item.name}">
+          
+          <label class="input-label">결제 주체</label>
+          <select id="itemPayerInput" class="select-field">
+            <option value="공동" ${curPayer==='공동'?'selected':''}>공동 통장 (5:5)</option>
+            <option value="신랑" ${curPayer==='신랑'?'selected':''}>신랑 결제</option>
+            <option value="신부" ${curPayer==='신부'?'selected':''}>신부 결제</option>
+          </select>
+
+          <label class="input-label">지출 / 결제일 (캘린더 연동)</label>
+          <input type="date" id="itemDateInput" class="input-field" value="${item.date || ''}">
+
+          <label class="input-label">계획 예산 (원)</label>
+          <input type="number" id="itemBudgetInput" class="input-field" value="${item.budget}">
+
+          <label class="input-label">실제 사용 금액 (원)</label>
+          <input type="number" id="itemSpentInput" class="input-field" value="${item.spent}">
+
+          <label class="input-label">메모 / 계약 특약사항</label>
+          <textarea id="itemNoteInput" class="textarea-field" placeholder="계약금, 잔금일 등">${item.note || ''}</textarea>
+        `;
+      } else {
+        const curAssignee = item.assignee || '함께';
+        document.getElementById('modalInputs').innerHTML = `
+          <label class="input-label">할 일 내용</label>
+          <input type="text" id="itemNameInput" class="input-field" value="${item.name}">
+          
+          <label class="input-label">담당자</label>
+          <select id="itemAssigneeInput" class="select-field">
+            <option value="함께" ${curAssignee==='함께'?'selected':''}>함께 확인</option>
+            <option value="신랑" ${curAssignee==='신랑'?'selected':''}>신랑 담당</option>
+            <option value="신부" ${curAssignee==='신부'?'selected':''}>신부 담당</option>
+          </select>
+
+          <label class="input-label">마감 예정일 (캘린더 연동)</label>
+          <input type="date" id="itemDateInput" class="input-field" value="${item.date || ''}">
+
+          <label class="input-label">상세 메모</label>
+          <textarea id="itemNoteInput" class="textarea-field" placeholder="참고사항, 링크 등">${item.note || ''}</textarea>
+        `;
+      }
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function openAddGroupModal() {
+      currentModalTarget = { type: 'add_group' };
+      document.getElementById('modalTitle').innerText = currentTab === 'budget' ? '상위 예산군 추가' : '상위 일정군 추가';
+      document.getElementById('modalInputs').innerHTML = `
+        <label class="input-label">카테고리명</label>
+        <input type="text" id="groupNameInput" class="input-field" placeholder="예: 신혼여행, 예물 & 가전, D-60">
+      `;
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function openAddItemModal(category) {
+      currentModalTarget = { type: 'add_item', category };
+      document.getElementById('modalTitle').innerText = `[${category}] 세부 항목 추가`;
+      if (currentTab === 'budget') {
+        document.getElementById('modalInputs').innerHTML = `
+          <label class="input-label">항목명</label>
+          <input type="text" id="itemNameInput" class="input-field" placeholder="항목 이름 (예: 웨딩 밴드)">
+          
+          <label class="input-label">결제 주체</label>
+          <select id="itemPayerInput" class="select-field">
+            <option value="공동">공동 통장 (5:5)</option>
+            <option value="신랑">신랑 결제</option>
+            <option value="신부">신부 결제</option>
+          </select>
+
+          <label class="input-label">지출 / 결제일 (캘린더 연동)</label>
+          <input type="date" id="itemDateInput" class="input-field">
+
+          <label class="input-label">계획 예산 (원)</label>
+          <input type="number" id="itemBudgetInput" class="input-field" placeholder="목표 예산 (숫자만)">
+
+          <label class="input-label">실제 사용 금액 (원)</label>
+          <input type="number" id="itemSpentInput" class="input-field" placeholder="실제 쓴 금액 (미사용시 0)">
+
+          <label class="input-label">메모 / 계약 특약사항</label>
+          <textarea id="itemNoteInput" class="textarea-field" placeholder="계약금, 잔금일 등"></textarea>
+        `;
+      } else {
+        document.getElementById('modalInputs').innerHTML = `
+          <label class="input-label">할 일 내용</label>
+          <input type="text" id="itemNameInput" class="input-field" placeholder="할 일 입력 (예: 청첩장 모임 명단 확정)">
+          
+          <label class="input-label">담당자</label>
+          <select id="itemAssigneeInput" class="select-field">
+            <option value="함께">함께 확인</option>
+            <option value="신랑">신랑 담당</option>
+            <option value="신부">신부 담당</option>
+          </select>
+
+          <label class="input-label">마감 예정일 (캘린더 연동)</label>
+          <input type="date" id="itemDateInput" class="input-field">
+
+          <label class="input-label">상세 메모</label>
+          <textarea id="itemNoteInput" class="textarea-field" placeholder="참고사항, 링크 등"></textarea>
+        `;
+      }
+      document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').style.display = 'none';
+    }
+
+    function submitModal() {
+      if (!currentModalTarget) return;
+
+      if (currentModalTarget.type === 'target_all_budgets') {
+        window.appData.targetTotalBudget = Number(document.getElementById('inputTargetTotal').value || 0);
+        window.appData.targetGroomBudget = Number(document.getElementById('inputTargetGroom').value || 0);
+        window.appData.targetBrideBudget = Number(document.getElementById('inputTargetBride').value || 0);
+        syncState();
+      } else if (currentModalTarget.type === 'wedding_date') {
+        const val = document.getElementById('weddingDateInput').value;
+        window.appData.weddingDate = val;
+        syncState();
+      } else if (currentModalTarget.type === 'add_group') {
+        const name = document.getElementById('groupNameInput').value.trim();
+        if (name) {
+          if (!window.appData[currentTab]) window.appData[currentTab] = {};
+          if (!window.appData[currentTab][name]) window.appData[currentTab][name] = [];
+          syncState();
+        }
+      } else if (currentModalTarget.type === 'edit_group') {
+        const newName = document.getElementById('groupNameInput').value.trim();
+        const oldName = currentModalTarget.oldCategory;
+        if (newName && newName !== oldName) {
+          const keys = Object.keys(window.appData[currentTab]);
+          const newObj = {};
+          keys.forEach(k => {
+            if (k === oldName) newObj[newName] = window.appData[currentTab][oldName];
+            else newObj[k] = window.appData[currentTab][k];
+          });
+          window.appData[currentTab] = newObj;
+          syncState();
+        }
+      } else if (currentModalTarget.type === 'add_item') {
+        const cat = currentModalTarget.category;
+        const name = document.getElementById('itemNameInput').value.trim();
+        const date = document.getElementById('itemDateInput').value;
+        const note = document.getElementById('itemNoteInput').value.trim();
+        if (name) {
+          if (currentTab === 'budget') {
+            const budget = Number(document.getElementById('itemBudgetInput').value || 0);
+            const spent = Number(document.getElementById('itemSpentInput').value || 0);
+            const payer = document.getElementById('itemPayerInput').value;
+            window.appData.budget[cat].push({ id: Date.now().toString(), name, budget, spent, payer, date, note });
+          } else {
+            const assignee = document.getElementById('itemAssigneeInput').value;
+            window.appData.todo[cat].push({ id: Date.now().toString(), name, done: false, assignee, date, note });
+          }
+          syncState();
+        }
+      } else if (currentModalTarget.type === 'edit_item') {
+        const cat = currentModalTarget.category;
+        const id = currentModalTarget.id;
+        const name = document.getElementById('itemNameInput').value.trim();
+        const date = document.getElementById('itemDateInput').value;
+        const note = document.getElementById('itemNoteInput').value.trim();
+        const items = window.appData[currentTab][cat] || [];
+        const item = items.find(i => i.id === id);
+
+        if (item && name) {
+          item.name = name;
+          item.date = date;
+          item.note = note;
+          if (currentTab === 'budget') {
+            item.budget = Number(document.getElementById('itemBudgetInput').value || 0);
+            item.spent = Number(document.getElementById('itemSpentInput').value || 0);
+            item.payer = document.getElementById('itemPayerInput').value;
+          } else {
+            item.assignee = document.getElementById('itemAssigneeInput').value;
+          }
+          syncState();
+        }
+      }
+      closeModal();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
+      });
+
+      document.getElementById('floatingBtn').addEventListener('click', openAddGroupModal);
+      document.getElementById('ddayCard').addEventListener('click', openDateModal);
+      document.getElementById('targetBudgetDisplay').addEventListener('click', openTargetBudgetModal);
+      document.getElementById('groomIndivDesc').addEventListener('click', openTargetBudgetModal);
+      document.getElementById('brideIndivDesc').addEventListener('click', openTargetBudgetModal);
+
+      document.getElementById('excelBtn').addEventListener('click', exportToExcel);
+      document.getElementById('reportBtn').addEventListener('click', exportReport);
+
+      // 캘린더 월 이동 버튼
+      document.getElementById('prevMonthBtn').addEventListener('click', () => {
+        calDate.setMonth(calDate.getMonth() - 1);
+        renderCalendar();
+      });
+      document.getElementById('nextMonthBtn').addEventListener('click', () => {
+        calDate.setMonth(calDate.getMonth() + 1);
+        renderCalendar();
+      });
+      document.getElementById('todayCalBtn').addEventListener('click', () => {
+        calDate = new Date();
+        renderCalendar();
+      });
+
+      document.getElementById('modalSubmitBtn').addEventListener('click', submitModal);
+      document.getElementById('modalOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'modalOverlay') closeModal();
+      });
+
+      render();
+    });
+  </script>
+</head>
+<body>
+
+  <header>
+    <div class="brand-title">WEDDING HQ</div>
+    <div class="header-right">
+      <button class="export-btn excel" id="excelBtn">📊 엑셀</button>
+      <button class="export-btn report" id="reportBtn">📄 보고서</button>
+      <div class="sync-status">
+        <div class="sync-dot" id="syncDot"></div>
+        <span id="syncIndicator">CONNECTING...</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- D-Day Card -->
+    <div class="dday-card" id="ddayCard">
+      <div>
+        <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); font-weight:600;">Wedding D-Day</div>
+        <div class="dday-badge" id="ddayCount">D-DAY 설정</div>
+      </div>
+      <div class="dday-info">
+        예식일<br>
+        <span id="targetDateText">터치하여 날짜 설정</span>
+      </div>
+    </div>
+
+    <!-- Overview KPI Card -->
+    <div class="kpi-container" id="kpiCard">
+      <div class="kpi-header">
+        <div style="font-size:11px; color:var(--text-muted); font-weight:700; letter-spacing:1px;">TOTAL BUDGET OVERVIEW</div>
+        <div class="target-budget-pill" id="targetBudgetDisplay">전체 ₩30,000,000 ✎</div>
+      </div>
+
+      <div class="kpi-values">
+        <div class="kpi-main-number" id="kpiMain">0%</div>
+        <div class="kpi-sub-number">
+          실제 사용 <span id="kpiSpent">₩0</span><br>
+          항목별 계획합 <span id="kpiTotal">₩0</span>
+        </div>
+      </div>
+
+      <!-- 전체 2중 비교 게이지 -->
+      <div class="progress-bar-title">
+        <span>🟣 항목별 계획 예산 비중</span>
+        <span id="planRatioText">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill-plan" id="planProgressBar" style="width: 0%"></div>
+      </div>
+
+      <div class="progress-bar-title">
+        <span>💖 실제 지출 비중 (전체 대비)</span>
+        <span id="spentRatioText">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill-actual" id="actualProgressBar" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- 예산 전용 서브 위젯 -->
+    <div id="budgetExtraUI">
+      <!-- 👨‍💼 신랑 / 👰‍♀️ 신부 개별 예산 바 카드 -->
+      <div class="individual-budget-card">
+        <div class="indiv-row">
+          <span class="indiv-name groom">👨‍💼 신랑 지출 현황 ✎</span>
+          <span class="indiv-amount" id="groomIndivDesc">₩0 / ₩15,000,000</span>
+        </div>
+        <div class="indiv-track">
+          <div class="indiv-fill-groom" id="groomIndivBar" style="width: 0%"></div>
+        </div>
+
+        <div class="indiv-row" style="margin-top: 8px;">
+          <span class="indiv-name bride">👰‍♀️ 신부 지출 현황 ✎</span>
+          <span class="indiv-amount" id="brideIndivDesc">₩0 / ₩15,000,000</span>
+        </div>
+        <div class="indiv-track">
+          <div class="indiv-fill-bride" id="brideIndivBar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- 3자 정산 요약 HUD -->
+      <div class="settlement-hud">
+        <div class="settle-box groom">
+          <div class="settle-label">신랑 결제</div>
+          <div class="settle-amount" id="groomTotal">₩0</div>
+        </div>
+        <div class="settle-box bride">
+          <div class="settle-label">신부 결제</div>
+          <div class="settle-amount" id="brideTotal">₩0</div>
+        </div>
+        <div class="settle-box joint">
+          <div class="settle-label">공동 결제</div>
+          <div class="settle-amount" id="jointTotal">₩0</div>
+        </div>
+      </div>
+
+      <!-- 정산 가이드 -->
+      <div class="settle-guide-card">
+        <div id="settleGuideText">정산 내역을 계산 중입니다...</div>
+      </div>
+    </div>
+
+    <!-- 📅 캘린더 탭 뷰 -->
+    <div id="calendarWrapper" style="display:none;">
+      <div class="calendar-container">
+        <div class="cal-header">
+          <button class="cal-nav-btn" id="prevMonthBtn">◀</button>
+          <div class="cal-title" id="calTitle">2026년 10월</div>
+          <div style="display:flex; gap:4px;">
+            <button class="cal-nav-btn" id="todayCalBtn">오늘</button>
+            <button class="cal-nav-btn" id="nextMonthBtn">▶</button>
+          </div>
+        </div>
+
+        <div class="cal-grid-weekdays">
+          <span style="color:#f87171;">일</span>
+          <span>월</span>
+          <span>화</span>
+          <span>수</span>
+          <span>목</span>
+          <span>금</span>
+          <span style="color:#60a5fa;">토</span>
+        </div>
+        <div class="cal-grid-days" id="calGridDays"></div>
+      </div>
+
+      <!-- 선택된 날짜의 상세 내역 카드 -->
+      <div id="calDetailContainer"></div>
+    </div>
+
+    <!-- 예산 / 할 일 카드 컨테이너 -->
+    <div id="sectionContainer"></div>
+  </div>
+
+  <!-- 추가 플로팅 버튼 -->
+  <button class="float-action-btn" id="floatingBtn">
+    <span style="font-size: 16px;">+</span> <span id="floatingBtnText">상위 예산군 추가</span>
+  </button>
+
+  <!-- 📱 iOS 스타일 하단 네이티브 탭바 -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="budget">
+      <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+      <span>예산 관리</span>
+    </button>
+    <button class="nav-item" data-tab="calendar">
+      <svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+      <span>캘린더</span>
+    </button>
+    <button class="nav-item" data-tab="todo">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9 14l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      <span>할 일</span>
+    </button>
+  </nav>
+
+  <!-- 모달 팝업 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <h3 id="modalTitle" style="margin-bottom: 14px; font-weight:700; font-size:16px;">항목 추가</h3>
+      <div id="modalInputs"></div>
+      <button class="submit-btn" id="modalSubmitBtn">저장하기</button>
+    </div>
+  </div>
+
+</body>
+</html>
